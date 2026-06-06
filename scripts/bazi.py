@@ -44,6 +44,52 @@ NAYIN = [
     "大溪水", "沙中土", "天上火", "石榴木", "大海水",
 ]
 
+# Na Yin descriptions — brief personality/life interpretation for each
+NAYIN_DESCRIPTIONS = {
+    "海中金": "金藏海底，内敛深沉，才华不轻易外露，需时机方能发光",
+    "炉中火": "热情如火炉，性格鲜明有冲劲，做事积极但需注意耐心",
+    "大林木": "如参天大树，根基深厚，性格稳重有担当，适合长期积累",
+    "路旁土": "朴实如道旁之土，踏实稳重，默默耕耘，厚积薄发",
+    "剑锋金": "锋芒如剑，锐利果断，有决断力，适合需要精确度的领域",
+    "山头火": "如火在山头，光芒外显，性格外向有感染力，善交际",
+    "涧下水": "如山涧溪流，灵动清秀，思维敏捷，适应力强",
+    "城头土": "厚重如城墙，稳重可靠，有保护欲，适合管理岗位",
+    "白蜡金": "精致如白蜡，细腻温和，有艺术气质，追求完美",
+    "杨柳木": "柔韧如杨柳，随和善变通，人缘好但需坚定立场",
+    "泉中水": "清澈如泉水，纯净透彻，心地善良，直觉敏锐",
+    "屋上土": "稳固如屋基，安定踏实，重视家庭，有责任感",
+    "霹雳火": "迅猛如霹雳，雷厉风行，爆发力强，适合开拓型工作",
+    "松柏木": "坚毅如松柏，不屈不挠，耐压性强，越挫越勇",
+    "长流水": "源远流长，持之以恒，有耐心耐力，适合长期项目",
+    "沙中金": "金藏沙中，需淘洗方显，大器晚成，中年后运势渐显",
+    "山下火": "火在山脚，温和持久，性格温暖不刺眼，人缘好",
+    "平地木": "如平原之木，生长顺利，性格平和，人生较平稳",
+    "壁上土": "坚如壁垒，意志坚定，有原则性，适合技术型工作",
+    "金箔金": "华丽如金箔，外在光鲜，有审美品味，重形象",
+    "覆灯火": "如灯中之火，照亮他人，有奉献精神，适合教育行业",
+    "天河水": "浩瀚如天河，心胸开阔，志向远大，适合宏观思维的工作",
+    "大驿土": "广阔如驿道，包容豁达，善于协调，适合公共服务",
+    "钗钏金": "精巧如首饰，注重细节，心灵手巧，适合手工艺创作",
+    "桑柘木": "实用如桑柘，朴实无华，务实重利，善于经营",
+    "大溪水": "奔流如溪，活力充沛，行动力强，喜欢自由",
+    "沙中土": "质朴如沙土，谦逊低调，不善张扬但内在丰富",
+    "天上火": "炽热如天火，光芒万丈，有领导气质，气场强大",
+    "石榴木": "坚韧如石榴，生命力强，多子多福，有韧性",
+    "大海水": "包容如大海，胸襟广阔，格局大，适应力极强",
+}
+
+# Month branch → seasonal strength hint for each element
+# 寅卯(春):木旺 巳午(夏):火旺 申酉(秋):金旺 亥子(冬):水旺 辰戌丑未(四季):土旺
+MONTH_SEASON = {
+    2: "春", 3: "春", 4: "春",   # 寅卯辰 → 春
+    5: "夏", 6: "夏", 7: "夏",   # 巳午未 → 夏
+    8: "秋", 9: "秋", 10: "秋",  # 申酉戌 → 秋
+    11: "冬", 0: "冬", 1: "冬",  # 亥子丑 → 冬
+}
+
+# Which element is prosperous in each season
+SEASON_PROSPEROUS = {"春": "木", "夏": "火", "秋": "金", "冬": "水"}
+
 # Hidden Stems (藏干) for each Earthly Branch
 # Format: list of (stem_index, strength) — first is primary (本气)
 HIDDEN_STEMS = {
@@ -95,22 +141,12 @@ def _solar_term_c(year, term_index):
     elif 2000 <= year <= 2099:
         return c_21st[term_index]
     else:
-        # For years outside range, use 21st century values with adjustment
         return c_21st[term_index]
 
 
 def get_solar_term_date(year, term_index):
-    """Get the approximate date of a solar term.
-
-    Args:
-        year: Gregorian year
-        term_index: 0=小寒, 1=大寒, ..., 23=冬至
-
-    Returns:
-        (month, day) tuple (approximate, may be off by 1 day)
-    """
+    """Get the approximate date of a solar term."""
     if term_index >= 12:
-        # Second half of solar terms may use the previous year's offset
         y = year - 1900
     else:
         y = year - 1900
@@ -118,7 +154,6 @@ def get_solar_term_date(year, term_index):
     c = _solar_term_c(year, term_index)
     day = int(c + 0.2422 * y - int(y / 4))
 
-    # Map term index to month
     month_map = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
                  7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12]
     month = month_map[term_index]
@@ -136,31 +171,18 @@ def get_solar_terms_for_year(year):
 
 
 def get_month_index_for_date(year, month, day):
-    """Determine which month branch (0-11, starting with 寅=0) a date falls in.
-
-    Uses solar terms to determine month boundaries.
-    Returns month index (0=寅月, ..., 11=丑月).
-    """
+    """Determine which month branch (0-11, starting with 寅=0) a date falls in."""
     terms = get_solar_terms_for_year(year)
-
     target = date(year, month, day)
-
     month_boundaries = []
 
     for i, jie_idx in enumerate(JIE_INDICES):
-        if jie_idx == 0:  # 小寒 — in January, but belongs to the next year's Jan
-            m, d = terms[jie_idx]
-            boundary_date = date(year, m, d)
-        else:
-            m, d = terms[jie_idx]
-            boundary_date = date(year, m, d)
+        m, d = terms[jie_idx]
+        boundary_date = date(year, m, d)
         month_boundaries.append((i, boundary_date))
 
-    # Now determine which month the target date falls in
-    # Sort boundaries by date
     sorted_boundaries = sorted(month_boundaries, key=lambda x: x[1])
 
-    # Find the last boundary <= target
     month_idx = None
     for mi, bd in reversed(sorted_boundaries):
         if target >= bd:
@@ -168,8 +190,6 @@ def get_month_index_for_date(year, month, day):
             break
 
     if month_idx is None:
-        # Before first boundary of the year (before 立春)
-        # It's still in month 11 (丑月) of previous year
         month_idx = 11
 
     return month_idx
@@ -180,13 +200,7 @@ def get_month_index_for_date(year, month, day):
 # =============================================================================
 
 def calc_year_pillar(year):
-    """Calculate year pillar (年柱).
-
-    The year pillar changes at 立春, not January 1.
-    We check if the date is before 立春 of this year.
-    """
-    # Year stem: (year - 4) % 10
-    # Year branch: (year - 4) % 12
+    """Calculate year pillar (年柱)."""
     stem = HEAVENLY_STEMS[(year - 4) % 10]
     branch = EARTHLY_BRANCHES[(year - 4) % 12]
     return stem, branch, (year - 4) % 10, (year - 4) % 12
@@ -194,29 +208,23 @@ def calc_year_pillar(year):
 
 def calc_year_pillar_for_date(year, month, day):
     """Calculate year pillar considering 立春 boundary."""
-    # Get 立春 date for this year
     lichun_m, lichun_d = get_solar_term_date(year, 2)
     target = date(year, month, day)
     lichun = date(year, lichun_m, lichun_d)
 
     if target < lichun:
-        # Date is before 立春, use previous year's pillar
         year -= 1
 
     return calc_year_pillar(year)
 
 
 def calc_month_pillar(year, month, day):
-    """Calculate month pillar (月柱).
-
-    The month branch is determined by which solar term range the date falls in.
-    Month stem is determined by year stem (五虎遁): (year_stem_idx * 2 + month_idx) % 10
-    """
+    """Calculate month pillar (月柱)."""
     month_idx = get_month_index_for_date(year, month, day)
     _, _, year_stem_idx, _ = calc_year_pillar_for_date(year, month, day)
 
     month_stem_idx = (year_stem_idx * 2 + month_idx) % 10
-    month_branch_idx = (month_idx + 2) % 12  # 寅=2, 卯=3, ..., 丑=1
+    month_branch_idx = (month_idx + 2) % 12
 
     return (
         HEAVENLY_STEMS[month_stem_idx],
@@ -234,10 +242,7 @@ def day_number_from_1900(year, month, day):
 
 
 def calc_day_pillar(year, month, day):
-    """Calculate day pillar (日柱).
-
-    Reference: 1900-01-01 = 甲戌日 (stem=0, branch=10)
-    """
+    """Calculate day pillar (日柱). Reference: 1900-01-01 = 甲戌日 (stem=0, branch=10)"""
     delta = day_number_from_1900(year, month, day)
     stem_idx = delta % 10
     branch_idx = (delta + 10) % 12
@@ -245,37 +250,33 @@ def calc_day_pillar(year, month, day):
 
 
 def calc_hour_pillar(day_stem_idx, hour, minute):
-    """Calculate hour pillar (时柱).
-
-    Hour branch is determined by the two-hour period.
-    Hour stem is determined by day stem (五鼠遁): (day_stem_idx * 2 + hour_branch_idx) % 10
-    """
+    """Calculate hour pillar (时柱)."""
     total_minutes = hour * 60 + minute
 
     if total_minutes >= 23 * 60 or total_minutes < 1 * 60:
-        hour_branch_idx = 0  # 子
+        hour_branch_idx = 0
     elif total_minutes < 3 * 60:
-        hour_branch_idx = 1  # 丑
+        hour_branch_idx = 1
     elif total_minutes < 5 * 60:
-        hour_branch_idx = 2  # 寅
+        hour_branch_idx = 2
     elif total_minutes < 7 * 60:
-        hour_branch_idx = 3  # 卯
+        hour_branch_idx = 3
     elif total_minutes < 9 * 60:
-        hour_branch_idx = 4  # 辰
+        hour_branch_idx = 4
     elif total_minutes < 11 * 60:
-        hour_branch_idx = 5  # 巳
+        hour_branch_idx = 5
     elif total_minutes < 13 * 60:
-        hour_branch_idx = 6  # 午
+        hour_branch_idx = 6
     elif total_minutes < 15 * 60:
-        hour_branch_idx = 7  # 未
+        hour_branch_idx = 7
     elif total_minutes < 17 * 60:
-        hour_branch_idx = 8  # 申
+        hour_branch_idx = 8
     elif total_minutes < 19 * 60:
-        hour_branch_idx = 9  # 酉
+        hour_branch_idx = 9
     elif total_minutes < 21 * 60:
-        hour_branch_idx = 10  # 戌
+        hour_branch_idx = 10
     else:
-        hour_branch_idx = 11  # 亥
+        hour_branch_idx = 11
 
     hour_stem_idx = (day_stem_idx * 2 + hour_branch_idx) % 10
 
@@ -292,13 +293,7 @@ def calc_hour_pillar(day_stem_idx, hour, minute):
 # =============================================================================
 
 def sexagenary_index(stem_idx, branch_idx):
-    """Calculate the position (0-59) in the sexagenary cycle.
-
-    The cycle pairs stems and branches advancing together.
-    Position n has stem n%10 and branch n%12.
-    We solve: n ≡ stem_idx (mod 10), n ≡ branch_idx (mod 12)
-    """
-    # Precomputed lookup for all 60 pairs
+    """Calculate the position (0-59) in the sexagenary cycle."""
     lookup = {}
     for n in range(60):
         s = n % 10
@@ -326,7 +321,6 @@ def get_hidden_stems(branch_idx):
 # Ten Gods (十神)
 # =============================================================================
 
-# Element generation/control relationships
 ELEMENT_GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
 ELEMENT_GENERATED_BY = {"火": "木", "土": "火", "金": "土", "水": "金", "木": "水"}
 ELEMENT_CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
@@ -334,15 +328,7 @@ ELEMENT_CONTROLLED_BY = {"土": "木", "水": "土", "火": "水", "金": "火",
 
 
 def get_ten_god(day_stem_idx, target_stem_idx):
-    """Calculate ten god (十神) relationship.
-
-    Args:
-        day_stem_idx: Day stem index (日主)
-        target_stem_idx: Target stem index
-
-    Returns:
-        Ten god name in Chinese
-    """
+    """Calculate ten god (十神) relationship."""
     if day_stem_idx == target_stem_idx:
         return "比肩"
 
@@ -355,19 +341,256 @@ def get_ten_god(day_stem_idx, target_stem_idx):
     if day_elem == target_elem:
         return "比肩" if same_yy else "劫财"
     elif ELEMENT_GENERATES[day_elem] == target_elem:
-        # Day stem generates target (我生)
         return "食神" if same_yy else "伤官"
     elif ELEMENT_GENERATED_BY[day_elem] == target_elem:
-        # Target generates day stem (生我)
         return "偏印" if same_yy else "正印"
     elif ELEMENT_CONTROLS[day_elem] == target_elem:
-        # Day stem controls target (我克)
         return "偏财" if same_yy else "正财"
     elif ELEMENT_CONTROLLED_BY[day_elem] == target_elem:
-        # Target controls day stem (克我)
         return "七杀" if same_yy else "正官"
 
     return "未知"
+
+
+# =============================================================================
+# BaZi Analysis Helpers
+# =============================================================================
+
+def count_ten_gods(pillars, day_stem_idx):
+    """Count ten god appearances across all four pillars (surface stems only)."""
+    counts = {}
+    for p in pillars:
+        if p["name"] == "日柱":
+            continue
+        tg = get_ten_god(day_stem_idx, p["stem_idx"])
+        counts[tg] = counts.get(tg, 0) + 1
+    return counts
+
+
+def count_elements(pillars, day_stem_idx):
+    """Count five element appearances across stems and branches."""
+    counts = {"木": 0, "火": 0, "土": 0, "金": 0, "水": 0}
+    for p in pillars:
+        counts[STEM_ELEMENT[p["stem_idx"]]] += 1
+        counts[BRANCH_ELEMENT[p["branch_idx"]]] += 1
+    return counts
+
+
+def assess_day_master_strength(day_stem_idx, month_branch_idx):
+    """Assess whether the day master is strong or weak based on birth month."""
+    dm_elem = STEM_ELEMENT[day_stem_idx]
+    season = MONTH_SEASON.get(month_branch_idx, "平")
+    prosperous_elem = SEASON_PROSPEROUS.get(season, "")
+
+    branch = month_branch_idx
+    is_earth_month = branch in [1, 4, 7, 10]
+
+    if dm_elem == prosperous_elem:
+        return "偏旺"
+    elif dm_elem == "土" and is_earth_month:
+        return "偏旺"
+    elif dm_elem == "土" and prosperous_elem == "火":
+        return "偏旺"
+    elif dm_elem == "木" and prosperous_elem == "水":
+        return "中和"
+    elif dm_elem == "火" and prosperous_elem == "木":
+        return "中和"
+    else:
+        return "偏弱"
+
+
+def generate_suggestions(result):
+    """Generate behavioral suggestions based on BaZi chart patterns."""
+    pillars = result["pillars"]
+    dm = result["day_master"]
+    dm_si = HEAVENLY_STEMS.index(dm["stem"])
+    dm_elem = dm["element"]
+
+    m_bi = pillars[1]["branch_idx"]
+    strength = assess_day_master_strength(dm_si, m_bi)
+
+    tg_counts = count_ten_gods(pillars, dm_si)
+    elem_counts = count_elements(pillars, dm_si)
+
+    personality = _suggest_personality(dm_elem, strength, tg_counts, pillars)
+    career = _suggest_career(dm_elem, strength, tg_counts, elem_counts)
+    relationships = _suggest_relationships(tg_counts)
+    health = _suggest_health(elem_counts, dm_elem)
+
+    current_luck = ""
+    luck = result["luck"]
+    if luck:
+        current_luck = _suggest_current_luck(luck, dm_si, strength)
+
+    return {
+        "personality": personality,
+        "career": career,
+        "relationships": relationships,
+        "health": health,
+        "current_luck": current_luck,
+        "strength": strength,
+    }
+
+
+def _suggest_personality(dm_elem, strength, tg_counts, pillars):
+    """Generate personality description."""
+    traits = []
+
+    elem_traits = {
+        "木": "正直向上，有理想抱负，如树木般不断成长",
+        "火": "热情主动，充满活力，善于感染周围的人",
+        "土": "诚信稳重，踏实可靠，是朋友眼中的定心丸",
+        "金": "果断刚毅，讲义气重原则，做事干净利落",
+        "水": "聪明灵活，适应力强，思维敏捷善于变通",
+    }
+    traits.append(elem_traits.get(dm_elem, ""))
+
+    if strength == "偏旺":
+        traits.append("自信心强，气场大，有主见不轻易动摇")
+    elif strength == "偏弱":
+        traits.append("心思细腻，善于合作，懂得借助外力成就自己")
+    else:
+        traits.append("性格平衡，刚柔并济，能屈能伸")
+
+    if tg_counts.get("正官", 0) >= 2:
+        traits.append("责任感强，重视规则和秩序")
+    if tg_counts.get("七杀", 0) >= 2:
+        traits.append("有魄力和冲劲，敢于挑战权威")
+    if tg_counts.get("食神", 0) >= 2 or tg_counts.get("伤官", 0) >= 2:
+        traits.append("创造力丰富，喜欢表达自我")
+    if tg_counts.get("正财", 0) >= 2 or tg_counts.get("偏财", 0) >= 2:
+        traits.append("务实重利，有商业头脑")
+    if tg_counts.get("正印", 0) >= 2 or tg_counts.get("偏印", 0) >= 2:
+        traits.append("善学习思考，富有智慧和慈悲心")
+
+    return "。".join(traits) + "。" if traits else "性格多元，兼容并蓄。"
+
+
+def _suggest_career(dm_elem, strength, tg_counts, elem_counts):
+    """Generate career suggestions."""
+    suggestions = []
+
+    if strength == "偏弱":
+        suggestions.append("适合团队协作型工作，或选择稳定的大平台，借助组织力量发展")
+        suggestions.append("宜选择能提供持续学习成长环境的行业")
+
+    if strength == "偏旺":
+        suggestions.append("适合独立主导型工作，创业或在组织中担任领导角色")
+        suggestions.append("宜选择需要强大执行力和决断力的领域")
+
+    elem_careers = {
+        "木": "适合教育、文化、环保、医疗等成长型行业",
+        "火": "适合传媒、娱乐、互联网、能源等曝光度高的行业",
+        "土": "适合房地产、建筑、金融、管理咨询等稳定型行业",
+        "金": "适合法律、工程、技术研发、精密制造等专业性强的行业",
+        "水": "适合贸易、物流、旅游、咨询、创意设计等流动性强的行业",
+    }
+    suggestions.append(elem_careers.get(dm_elem, ""))
+
+    if tg_counts.get("食神", 0) + tg_counts.get("伤官", 0) >= 2:
+        suggestions.append("有技术/艺术天赋，适合专业技能或创意类工作")
+    if tg_counts.get("正官", 0) >= 2:
+        suggestions.append("适合公务员、管理岗位或制度完善的大企业")
+    if tg_counts.get("正财", 0) + tg_counts.get("偏财", 0) >= 2:
+        suggestions.append("有经商天赋，可考虑理财投资或自主创业")
+
+    return "；".join(suggestions) + "。"
+
+
+def _suggest_relationships(tg_counts):
+    """Generate relationship advice."""
+    advice = []
+
+    if tg_counts.get("正官", 0) >= 1:
+        advice.append("对伴侣忠诚负责，重视家庭稳定")
+    if tg_counts.get("七杀", 0) >= 1:
+        advice.append("感情中主导欲较强，需学习倾听和妥协")
+    if tg_counts.get("伤官", 0) >= 1:
+        advice.append("表达直接，需注意沟通方式避免伤害亲近之人")
+    if tg_counts.get("正财", 0) >= 1:
+        advice.append("对感情务实认真，重视物质基础，是可靠的伴侣")
+    if tg_counts.get("劫财", 0) >= 1:
+        advice.append("朋友缘好但需注意界限，避免因义气影响亲密关系")
+    if tg_counts.get("正印", 0) >= 1:
+        advice.append("有包容心和同理心，在关系中乐于付出")
+
+    if not advice:
+        advice.append("待人真诚，人际关系和谐")
+
+    return "；".join(advice) + "。"
+
+
+def _suggest_health(elem_counts, dm_elem):
+    """Generate health notes based on element balance."""
+    notes = []
+    total = sum(elem_counts.values())
+
+    for elem, count in elem_counts.items():
+        ratio = count / max(total, 1)
+        if ratio < 0.1:
+            if elem == "木":
+                notes.append("五行木偏弱，注意肝胆保养，避免熬夜，适量舒展运动")
+            elif elem == "火":
+                notes.append("五行火偏弱，注意心血管健康，保持适度有氧运动")
+            elif elem == "土":
+                notes.append("五行土偏弱，注意脾胃消化，饮食规律少食生冷")
+            elif elem == "金":
+                notes.append("五行金偏弱，注意呼吸道保养，空气质量差时做好防护")
+            elif elem == "水":
+                notes.append("五行水偏弱，注意肾脏泌尿系统，多喝水不久坐")
+
+    for elem, count in elem_counts.items():
+        ratio = count / max(total, 1)
+        if ratio > 0.35:
+            if elem == "木":
+                notes.append("木过旺，注意情绪管理，避免过度操劳引起肝火")
+            elif elem == "火":
+                notes.append("火过旺，注意降火养心，避免亢奋过度引起失眠")
+            elif elem == "土":
+                notes.append("土过旺，注意饮食清淡，避免脾胃负担过重")
+            elif elem == "金":
+                notes.append("金过旺，注意肺部健康，避免长期在干燥环境中")
+            elif elem == "水":
+                notes.append("水过旺，注意肾脏养护，避免寒凉食物")
+
+    if not notes:
+        notes.append("五行较为平衡，保持现有生活习惯即可")
+
+    return "；".join(notes) + "。"
+
+
+def _suggest_current_luck(luck, dm_stem_idx, strength):
+    """Generate advice for the current luck period."""
+    pillars = luck["pillars"]
+    lines = []
+
+    for i, lp in enumerate(pillars[:4]):
+        lp_stem_idx = HEAVENLY_STEMS.index(lp["stem"])
+        tg = get_ten_god(dm_stem_idx, lp_stem_idx)
+        nayin_desc = NAYIN_DESCRIPTIONS.get(lp["nayin"], "")
+
+        dm_elem = STEM_ELEMENT[dm_stem_idx]
+        lp_elem = STEM_ELEMENT[lp_stem_idx]
+        is_supporting = (
+            dm_elem == lp_elem or
+            ELEMENT_GENERATED_BY.get(dm_elem) == lp_elem
+        )
+
+        if is_supporting and strength == "偏弱":
+            assessment = "有利运，宜积极进取"
+        elif not is_supporting and strength == "偏旺":
+            assessment = "有利运，能量得以释放发挥"
+        elif is_supporting and strength == "偏旺":
+            assessment = "平稳运，注意避免过于强势"
+        else:
+            assessment = "调整期，宜韬光养晦积累实力"
+
+        lines.append(
+            f"- **{lp['stem']}{lp['branch']}运**（{lp['age_start']:.0f}–{lp['age_end']:.0f}岁）"
+            f"：{tg}运，{nayin_desc}。{assessment}"
+        )
+
+    return "\n".join(lines)
 
 
 # =============================================================================
@@ -378,7 +601,7 @@ def get_next_jie(year, month, day):
     """Get the next 节 after the birth date."""
     target = date(year, month, day)
 
-    for months_ahead in range(2):  # current year and next year
+    for months_ahead in range(2):
         check_year = year + months_ahead
         check_terms = get_solar_terms_for_year(check_year)
         for jie_idx in JIE_INDICES:
@@ -394,7 +617,7 @@ def get_prev_jie(year, month, day):
     """Get the previous 节 before the birth date."""
     target = date(year, month, day)
 
-    for months_back in range(2):  # current year and previous year
+    for months_back in range(2):
         check_year = year - months_back
         check_terms = get_solar_terms_for_year(check_year)
         candidates = []
@@ -411,17 +634,13 @@ def get_prev_jie(year, month, day):
 
 def calc_luck_cycle(year, month, day, hour, minute, gender, year_stem_idx,
                     month_stem_idx, month_branch_idx):
-    """Calculate luck cycle (大运).
-
-    Returns:
-        dict with starting_age, luck_pillars list
-    """
-    year_stem_is_yang = (year_stem_idx % 2 == 0)  # 甲丙戊庚壬 → yang
+    """Calculate luck cycle (大运)."""
+    year_stem_is_yang = (year_stem_idx % 2 == 0)
 
     if gender == "male":
-        forward = year_stem_is_yang  # male + yang year → forward
+        forward = year_stem_is_yang
     else:
-        forward = not year_stem_is_yang  # female + yin year → forward
+        forward = not year_stem_is_yang
 
     if forward:
         next_jie = get_next_jie(year, month, day)
@@ -436,10 +655,8 @@ def calc_luck_cycle(year, month, day, hour, minute, gender, year_stem_idx,
         else:
             days_to_jie = 0
 
-    # Starting age: 3 days = 1 year of life
     starting_age = days_to_jie / 3.0
 
-    # Generate 8 luck pillars (each spans 10 years)
     luck_pillars = []
     for i in range(8):
         if forward:
@@ -473,32 +690,13 @@ def calc_luck_cycle(year, month, day, hour, minute, gender, year_stem_idx,
 # =============================================================================
 
 def calculate_bazi(year, month, day, hour=0, minute=0, gender=None):
-    """Calculate complete BaZi chart.
-
-    Args:
-        year: Gregorian year (1900-2100)
-        month: Gregorian month (1-12)
-        day: Gregorian day (1-31)
-        hour: Hour (0-23)
-        minute: Minute (0-59)
-        gender: "male" or "female" (optional, for luck cycle)
-
-    Returns:
-        dict with all BaZi components
-    """
+    """Calculate complete BaZi chart."""
     if year < 1900 or year > 2100:
         raise ValueError(f"Year {year} out of supported range (1900-2100)")
 
-    # Year pillar
     y_stem, y_branch, y_si, y_bi = calc_year_pillar_for_date(year, month, day)
-
-    # Month pillar
     m_stem, m_branch, m_si, m_bi = calc_month_pillar(year, month, day)
-
-    # Day pillar
     d_stem, d_branch, d_si, d_bi = calc_day_pillar(year, month, day)
-
-    # Hour pillar
     h_stem, h_branch, h_si, h_bi = calc_hour_pillar(d_si, hour, minute)
 
     pillars = [
@@ -540,14 +738,12 @@ def calculate_bazi(year, month, day, hour=0, minute=0, gender=None):
         },
     ]
 
-    # Ten Gods for each pillar (relative to day stem)
     for p in pillars:
         if p["name"] == "日柱":
             p["ten_god"] = "日主"
         else:
             p["ten_god"] = get_ten_god(d_si, p["stem_idx"])
 
-    # Ten Gods for hidden stems in each pillar
     for p in pillars:
         p["hidden_ten_gods"] = []
         for hs, strength in p["hidden_stems"]:
@@ -555,7 +751,6 @@ def calculate_bazi(year, month, day, hour=0, minute=0, gender=None):
             tg = get_ten_god(d_si, hs_idx)
             p["hidden_ten_gods"].append((hs, strength, tg))
 
-    # Luck cycle
     luck = None
     if gender:
         luck = calc_luck_cycle(year, month, day, hour, minute, gender,
@@ -589,8 +784,13 @@ def format_bazi_markdown(result):
     lines = []
     birth = result["birth"]
     dm = result["day_master"]
+    pillars = result["pillars"]
 
-    # Header
+    stems = [p["stem"] for p in pillars]
+    branches = [p["branch"] for p in pillars]
+    nayins = [p["nayin"] for p in pillars]
+    tengods = [p["ten_god"] for p in pillars]
+
     lines.append("# 八字排盘")
     lines.append("")
     lines.append(f"**出生时间**：{birth['year']}年{birth['month']}月{birth['day']}日 "
@@ -598,18 +798,33 @@ def format_bazi_markdown(result):
     if birth["gender"]:
         gender_label = "男" if birth["gender"] == "male" else "女"
         lines.append(f"**性别**：{gender_label}")
+    lines.append("")
+
+    # Prominent 八字 display
+    lines.append("## 八字一览")
+    lines.append("")
+    lines.append("```")
+    lines.append(f"  {'  '.join(stems)}")
+    lines.append(f"  {'  '.join(branches)}")
+    lines.append("```")
+    lines.append("")
+    lines.append(
+        f"**{pillars[0]['stem']}{pillars[0]['branch']} "
+        f"{pillars[1]['stem']}{pillars[1]['branch']} "
+        f"{pillars[2]['stem']}{pillars[2]['branch']} "
+        f"{pillars[3]['stem']}{pillars[3]['branch']}**"
+    )
+    lines.append("")
     lines.append(f"**日主**：{dm['stem']}（{dm['element']}・{dm['yinyang']}）")
+
+    suggestions = generate_suggestions(result)
+    lines.append(f"**日主强弱**：{suggestions['strength']}")
     lines.append("")
 
     # Four Pillars table
     lines.append("## 四柱")
     lines.append("")
-    pillars = result["pillars"]
     pnames = [p["name"] for p in pillars]
-    stems = [p["stem"] for p in pillars]
-    branches = [p["branch"] for p in pillars]
-    nayins = [p["nayin"] for p in pillars]
-    tengods = [p["ten_god"] for p in pillars]
 
     lines.append("|     | " + " | ".join(pnames) + " |")
     lines.append("|-----|" + "|".join(["-----"] * 4) + "|")
@@ -626,6 +841,14 @@ def format_bazi_markdown(result):
         hs_str = "、".join([f"{s}（{t}）" for s, t in p["hidden_stems"]])
         htg_str = "、".join([f"{s}→{tg}" for s, _, tg in p["hidden_ten_gods"]])
         lines.append(f"- **{p['name']}** {p['branch']}：{hs_str} ／ 十神：{htg_str}")
+    lines.append("")
+
+    # Na Yin Analysis
+    lines.append("## 纳音解析")
+    lines.append("")
+    for p in pillars:
+        desc = NAYIN_DESCRIPTIONS.get(p["nayin"], "")
+        lines.append(f"- **{p['name']}** {p['stem']}{p['branch']} → **{p['nayin']}**：{desc}")
     lines.append("")
 
     # Luck Cycle
@@ -646,8 +869,33 @@ def format_bazi_markdown(result):
             )
         lines.append("")
 
+    # Behavioral Suggestions
+    lines.append("## 行为建议")
+    lines.append("")
+
+    lines.append("### 性格特点")
+    lines.append(suggestions["personality"])
+    lines.append("")
+
+    lines.append("### 事业方向")
+    lines.append(suggestions["career"])
+    lines.append("")
+
+    lines.append("### 人际关系")
+    lines.append(suggestions["relationships"])
+    lines.append("")
+
+    lines.append("### 健康注意")
+    lines.append(suggestions["health"])
+    lines.append("")
+
+    if suggestions["current_luck"]:
+        lines.append("### 大运提示")
+        lines.append(suggestions["current_luck"])
+        lines.append("")
+
     lines.append("---")
-    lines.append("*注：节气日期为近似计算，极端情况可能偏差1日。八字排盘结果仅供参考。*")
+    lines.append("*注：节气日期为近似计算，极端情况可能偏差1日。以上分析仅供参考，不可作为重大决策的唯一依据。*")
 
     return "\n".join(lines)
 
